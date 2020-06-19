@@ -56,27 +56,31 @@ The model.py file contains the code for training and saving the convolution neur
 
 #### 1. An appropriate model architecture has been employed
 
-My model is just same as Lenet-5 in p3 project except the normalization input layer.
+My model is just same as Lenet-5 in p3 project except the normalization input layer at first place, But with some fatal failures I transfer to the nividia's network in paper: "End to End Learning for self-Driving Cars-Nvidia".
 
-The model includes RELU layers to introduce nonlinearity (code line 58 and 63), and the data is normalized in the model using a Keras lambda layer (code line 54 and 55). 
+I think maybe the Lenet-5 is too simple to capture the complex situation in the simulator. I cut one fully connected layer in Nvidia's network(see below).
+
+The model includes RELU layers to introduce nonlinearity (code line 97、100、103、106), and the data is normalized in the model using a Keras lambda layer (code line 94 and 95). 
 
 #### 2. Attempts to reduce overfitting in the model
 
-The model contains dropout layers(with keep_prob = 0.5) in order to reduce overfitting (model.py lines 67). 
+The model contains dropout layers(with keep_prob = 0.55) in order to reduce overfitting (model.py lines 127). 
 
-The model was trained and validated on different data sets to ensure that the model was not overfitting (code line 116-120). The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track.
-Also I used the **ModelCheckpoint**(model.py line 104) and **stopper**(model.py line 105)  modules to save best model and use early stopper to avoid overfiting.
+The model was trained and validated on different data sets to ensure that the model was not overfitting (code line 138-142). The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track.
+Also I used the **ModelCheckpoint**(model.py line 126) and **stopper**(model.py line 127)  modules to save best model and use early stopper to avoid overfiting.
 
 #### 3. Model parameter tuning
 
-The model used an adam optimizer. (model.py line 102).
+The model used an adam optimizer. (model.py line 124).
 I found when the epoch increased , the loss decreased slowly so I google a way to
-auto-ture the learning rate by line 106 in model.py.
+auto-ture the learning rate by line 128 in model.py.
 
 
 #### 4. Appropriate training data
 
-Training data was chosen to keep the vehicle driving on the road. I used a combination of center lane driving, recovering from the left and right sides of the road. I also build a filter function in `helper.py` named **filter_samples()** to cut off some zero steering data to avoid the model "learn too much to do nothing".
+Training data was chosen to keep the vehicle driving on the road. I used a combination of center lane driving, recovering from the left and right sides of the road and big angle focused dataset, and open aera turning dataset to train the data.And I found the performance is improved with increasing dataset size.
+I think the more complex network needs more data, when the feeded data is small, the model performance is not good. 
+I also build a filter function in `helper.py` named **filter_samples()** to cut off some zero steering data to avoid the model "learn too much to do nothing".
 I also used the center\left\right images and their flip images to generate enought data to train the model.
 
 For details about how I created the training data, see the next section. 
@@ -108,17 +112,22 @@ When on the brige, the car tend to run on one side of the brige. I think this is
 To improve the driving behavior in these case, I mean to steering the car on brige more ofen so the car knows what to do with this situation.
 
 *collect more data
-when try collect more data with:
+When try collect more data with:
 1. two or three laps of center lane driving
 2. one lap of recovery driving from the sides
 3. one lap focusing on driving smoothly around curves
+4. focus on the big turning angle situation
+5. focus the open aera road recovery situation
+6. two lap of anti-closcwise dataset
+
 the loss is sharply down.
-At the end of the process, the vehicle is able to drive autonomously around the track without leaving the road as shown in vedio `/output/success1.mp4`
+At the end of the process, the vehicle is able to drive autonomously around the track without leaving the road as shown in vedio `/output/success2.mp4`
 
 
 #### 2. Final Model Architecture
 
-The final model architecture (model.py lines 18-24) consisted of a convolution neural network with the following layers and layer sizes ...
+Although the lenet-5 network works well in simulator, but there still are some slight flaws in the simulator. The car will slightly hit the road side a few times and the driving behaviour is not smooth enought..
+The final model architecture (model.py lines 93-119) consisted of a convolution neural network with the following layers and layer sizes:
 
 Here is a visualization of the architecture (note: visualizing the architecture is optional 
 
@@ -126,21 +135,32 @@ With model.summary(), the architect of the lenet-5 model is shown below:
 | layer(type)| output shape | praram num |
 |:-----|:--------|:------:|
 | lambda_1  | (None, 160, 320, 3) | 0 |
-| cropping2d_1   | (None, 60, 320, 3) | 0 |
-| conv2d_1  | (None, 56, 316, 6) | 456 | 
-| activation_1    | (None, 56, 316, 6) | 0 | 
-| max_pooling2d_1    | (None, 56, 316, 6) | 0 | 
-| conv2d_2 (Conv2D)     | (None, 24, 154, 16)| 2416 | 
-| activation_2    | (None, 24, 154, 16) | 0 | 
-| max_pooling2d_2    | (None, 12, 77, 16)  | 0 |
-| flatten_1 (Flatten)   |  (None, 14784)    | 0 |
-| dense_1 (Dense)    |  (None, 120)  | 177420|
-| dense_2 (Dense)    |  (None, 84)  | 10164|
-| dense_3 (Dense)    |  (None, 1)  | 85|
+| cropping2d_1   | (None, 65, 320, 3) | 0 |
+| conv2d_1  | (None, 61, 316, 24) | 1824| 
+| activation_1    | (None, 61, 316, 24) | 0 | 
+| max_pooling2d_1    | (None, 30, 316, 24) | 0 | 
+| conv2d_2 (Conv2D)     | (None, 26, 154, 36)| 21636 | 
+| activation_2    | (None, 26, 154, 36) | 0 | 
+| max_pooling2d_2    | (None, 13, 77, 36)  | 0 |
+| conv2d_3 (Conv2D)     | (None, 9, 73, 48)| 43248 | 
+| activation_2    | (None, 9, 73, 48) | 0 | 
+| max_pooling2d_2    | (None, 4, 36, 48)  | 0 |
+| conv2d_4 (Conv2D)     | (None, 4, 36, 64)| 27712 | 
+| activation_2    | (None, 4, 36, 64) | 0 | 
+| conv2d_5 (Conv2D)     | (None, 2, 34, 64)| 27712 | 
+| activation_2    | (None, 2, 34, 64) | 0 | 
+| flatten_1 (Flatten)   |  (None, 4352)    | 0 |
+| dense_1 (Dense)    |  (None, 100)  | 435300|
+| dropout_1          |   (None, 100) | 0|
+| dense_2 (Dense)    |  (None, 50)  | 5050|
+| dropout_2         |   (None, 50) | 0|
+| dense_3 (Dense)    |  (None, 10)  | 510|
+| dropout_3          |   (None, 10) | 0|
+| dense_4 (Dense)    |  (None, 1)  | 11|
 _________________________________________________________________
-Total params: 1,787,409
-Trainable params: 1,787,365
-Non-trainable params: 44
+Total params: 572,219
+Trainable params: 572,2195
+Non-trainable params: 0
 _________________________________________________________________
 
 #### 3. Creation of the Training Set & Training Process
@@ -173,8 +193,10 @@ I used this training data for training the model. The validation set helped dete
 Here's a exsample of how the loss in training set and validation set.
 ![alt text][image7]
 
+When I finally transfered to the nvidia's network, I found the car's behavior is sensiable to the shadow on the road so I removed the line 130 in `helper.py` to avoid that behavior, and it works well! 
+
 ### What to explore next
 * generate more high quality data
 I think the input data is absoutly important, the model will learn what you feed it.
 * try more powerful network
-Although I have tried the nivida's end to end learning CNN net work, it didn't work well I think I'll explore more model with more time to understand how to design the architecure of a useful network.
+I think I'll explore more model with more time to understand how to design the architecure of a useful network.

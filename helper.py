@@ -79,29 +79,35 @@ def pre_process(train_img):
 # @input csvfile path
 # @output images info samples
 def get_samples(filepath):
+    # print(filepath)
     samples = []
     try:
         with open(filepath + '/driving_log.csv') as csvfile:
+            
             reader = csv.reader(csvfile)
             for line in reader:
+                line.append(filepath)
                 samples.append(line)
     except:
         print("Open csv file failed!!!")
+        print(filepath)
     return samples
 # filter the zero angle pictures
 # @para samples: the files get in .csv
 # @return filer: return the images' steering angle not equal to zero.
-def filter_samples(samples):
+def filter_samples(samples, all):
     filer = []
+    
     for sample in samples:
         num_r = random.randint(0, 9) # generate a random from 0 to 9
-        if float(sample[3]) == 0 and num_r < 6 : # filter when 2/3 percent steering angle is zero 
+        if float(sample[3]) == 0 and (num_r < 7 or all == 1): # filter when 2/3 percent steering angle is zero 
             pass
         else:
             filer.append(sample)
+        
     return filer
 # generate the generator
-def generator(samples, filepath, batch_size = 32):
+def generator(samples, batch_size = 32):
     # samples = get_samples(filepath)
     num_input = len(samples)
     correction = 0.4
@@ -117,9 +123,11 @@ def generator(samples, filepath, batch_size = 32):
                 angle = float(batch_sample[3])
     
                 for i in range(3):
-                    image_path = filepath + '/IMG/'+ batch_sample[i].split('\\')[-1]
-                    
+                    image_path = batch_sample[7] + '/IMG/'+ batch_sample[i].split('\\')[-1]
+                    # print("test--------------------------------------------here!!!!!!")
+                    # print(batch_sample[7])
                     image = cv2.imread(image_path)
+                    # image_hsv = cv2.cvtColor(image,cv2.COLOR_RGB2HSV)
                     images.append(image)
                     images.append(cv2.flip(image,1))
                 angles.append(angle)
